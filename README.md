@@ -19,6 +19,35 @@ QuishGuard detects malicious QR codes by jointly analysing:
 - ~1,000,000 balanced benign/malicious samples
 - URLs rendered as QR codes (qrcode library; error-correction level L, box size 10, 4-module quiet zone, 256×256 px)
 - 11 categories (benign + 10 attack types); stratified 65/15/20 train/val/test split (seed 42)
+## Architecture
+
+```
+                    ┌─────────────────────────┐
+                    │   Raw URL Corpus (~1M)   │
+                    └────────────┬────────────┘
+                                 │  QR rendering + Augmentation + CycleGAN
+                    ┌────────────▼────────────┐
+                    │      QR Code Corpus      │
+                    │   (65/15/20, seed 42)    │
+                    └──────┬────────────┬──────┘
+                           │            │
+             ┌─────────────▼──┐      ┌──▼──────────────────┐
+             │  VISUAL BRANCH │      │   SEMANTIC BRANCH    │
+             │ MobileViTv2_100│      │ Multi-decoder ensemble│
+             │  + PGD hardening│      │  → URL canonicalization│
+             │   → 512-D emb.  │      │  → DistilBERT → 768-D │
+             └─────────┬───────┘      └──────────┬──────────┘
+                       │                         │
+                       └──────────┬──────────────┘
+                          Concatenate → 1280-D
+                       ┌──────────▼───────────┐
+                       │   FCNN Classifier     │
+                       │ 1280 → 256 → 128 → C  │
+                       └──────────┬───────────┘
+                       ┌──────────▼───────────┐
+                       │   Benign / Malicious  │
+                       └──────────────────────┘
+```
 
 ## Usage
 1. Clone the repository.
